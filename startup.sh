@@ -1,11 +1,7 @@
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")"
-
-if [ ! -d node_modules ]; then
-  npm install
+#!/bin/sh
+set -eu
+cd /workspace
+if curl -sf -o /dev/null --max-time 2 http://127.0.0.1:8080/; then
+  exit 0
 fi
-
-npm install three @react-three/fiber @react-three/drei @types/three --save 2>/dev/null || true
-
-exec npm run dev
+npm run dev >>/tmp/app-startup.log 2>&1 &
