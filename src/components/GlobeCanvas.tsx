@@ -15,6 +15,55 @@ const EARTH_NIGHT =
 
 const RADIUS = 2;
 
+/** Night lights visible only on the dark side of Earth (dot product with sun). */
+function createNightSideMaterial(
+  nightMap: THREE.Texture,
+  enabled: boolean,
+): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      nightMap: { value: nightMap },
+      sunDirection: { value: new THREE.Vector3(1, 0, 0) },
+      opacity: { value: enabled ? 1.0 : 0.0 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vNormalWorld;
+
+      void main() {
+        vUv = uv;
+        // Object-space normal → world (earth group has no scale skew)
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D nightMap;
+      uniform vec3 sunDirection;
+      uniform float opacity;
+      varying vec2 vUv;
+      varying vec3 vNormalWorld;
+
+      void main() {
+        // Day side: normal faces sun (positive). Night side: negative.
+        float dayFactor = dot(normalize(vNormalWorld), normalize(sunDirection));
+        // Soft terminator band so lights fade near the twilight zone
+        float nightFactor = smoothstep(0.05, -0.15, dayFactor);
+        vec3 nightColor = texture2D(nightMap, vUv).rgb;
+        // Emphasize bright city lights, damp residual day pixels in the texture
+        float luminance = dot(nightColor, vec3(0.299, 0.587, 0.114));
+        float cityMask = smoothstep(0.05, 0.35, luminance);
+        float alpha = nightFactor * cityMask * opacity * 0.95;
+        gl_FragColor = vec4(nightColor * 1.35, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.FrontSide,
+  });
+}
+
 function Earth() {
   const [dayMap, bumpMap, nightMap] = useTexture([
     EARTH_DAY,
@@ -23,20 +72,18 @@ function Earth() {
   ]);
   const showNightLights = useGlobeStore((s) => s.showNightLights);
   const cloudsRef = useRef<THREE.Mesh>(null);
+  const nightMat = useMemo(
+    () => createNightSideMaterial(nightMap, showNightLights),
+    [nightMap, showNightLights],
+  );
 
   useFrame((_, dt) => {
     if (cloudsRef.current) cloudsRef.current.rotation.y += dt * 0.012;
+    // Keep night-side mask aligned with the live sun direction
+    const sun = getSunDirection();
+    nightMat.uniforms.sunDirection.value.set(sun.x, sun.y, sun.z);
+    nightMat.uniforms.opacity.value = showNightLights ? 1.0 : 0.0;
   });
-
-  const nightMat = useMemo(() => {
-    return new THREE.MeshBasicMaterial({
-      map: nightMap,
-      transparent: true,
-      opacity: showNightLights ? 0.55 : 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-  }, [nightMap, showNightLights]);
 
   return (
     <group>
