@@ -5,13 +5,7 @@ import * as THREE from "three";
 import { CITIES, latLonToVector3, type City } from "../data/cities";
 import { useGlobeStore } from "../store/globeStore";
 
-function Marker({
-  city,
-  radius,
-}: {
-  city: City;
-  radius: number;
-}) {
+function Marker({ city, radius }: { city: City; radius: number }) {
   const selected = useGlobeStore((s) => s.selectedCity);
   const setSelectedCity = useGlobeStore((s) => s.setSelectedCity);
   const isActive = selected?.id === city.id;
@@ -36,7 +30,6 @@ function Marker({
 
   return (
     <group position={[pos.x, pos.y, pos.z]}>
-      {/* outward offset so marker sits on surface */}
       <group
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -54,7 +47,12 @@ function Marker({
       >
         <mesh ref={pulseRef}>
           <sphereGeometry args={[0.045, 16, 16]} />
-          <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.3}
+            depthWrite={false}
+          />
         </mesh>
         <mesh>
           <sphereGeometry args={[0.028, 16, 16]} />
@@ -68,7 +66,10 @@ function Marker({
         {(hovered || isActive) && (
           <Html
             distanceFactor={8}
-            style={{ pointerEvents: "none", transform: "translate(-50%, -140%)" }}
+            style={{
+              pointerEvents: "none",
+              transform: "translate(-50%, -140%)",
+            }}
             center
           >
             <div className="whitespace-nowrap rounded-md border border-sky-400/30 bg-slate-950/90 px-2 py-1 text-[11px] font-medium text-sky-100 shadow-lg backdrop-blur">

@@ -9,34 +9,28 @@ export function getSunDirection(date = new Date()) {
     date.getUTCMinutes() / 60 +
     date.getUTCSeconds() / 3600;
 
-  // Day of year for declination
+  // Day of year for solar declination
   const start = Date.UTC(date.getUTCFullYear(), 0, 0);
   const dayOfYear = Math.floor((date.getTime() - start) / 86_400_000);
-  const declination =
-    -23.44 * Math.cos(((2 * Math.PI) / 365) * (dayOfYear + 10) * (Math.PI / 180) * (180 / Math.PI));
-  // Simpler standard approx:
-  const declRad =
-    ((-23.44 * Math.cos((2 * Math.PI * (dayOfYear + 10)) / 365)) * Math.PI) / 180;
+  // Standard approximation: declination in degrees, then radians
+  const declDeg = -23.44 * Math.cos((2 * Math.PI * (dayOfYear + 10)) / 365);
+  const latRad = (declDeg * Math.PI) / 180;
 
   const sunLon = 180 - (utcHours / 24) * 360;
-  const lonRad = (sunLon * Math.PI) / 180;
-  const latRad = declRad;
-
-  // Convert to Cartesian on unit sphere (same convention as latLonToVector3)
+  // Match latLonToVector3 convention used for city markers
   const phi = Math.PI / 2 - latRad;
-  const theta = lonRad + Math.PI;
+  const theta = ((sunLon + 180) * Math.PI) / 180;
 
   const x = -Math.sin(phi) * Math.cos(theta);
   const z = Math.sin(phi) * Math.sin(theta);
   const y = Math.cos(phi);
 
-  // Normalize
   const len = Math.hypot(x, y, z) || 1;
   return {
     x: x / len,
     y: y / len,
     z: z / len,
-    sunLongitude: sunLon,
+    sunLongitude: ((sunLon % 360) + 360) % 360,
     utcHours,
     dayFraction: utcHours / 24,
   };
