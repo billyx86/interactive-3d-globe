@@ -211,7 +211,7 @@ export const CITIES: City[] = [
   },
 ];
 
-/** Convert lat/lon degrees to THREE.js sphere position (radius R). */
+/** Convert lat/lon degrees to THREE.js sphere position (Y-up, radius R). */
 export function latLonToVector3(lat: number, lon: number, radius: number) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);

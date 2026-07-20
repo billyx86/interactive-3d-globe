@@ -1,51 +1,43 @@
 # Orbital — Interactive 3D Globe
 
-A polished interactive 3D globe web app with real-time day/night lighting, clickable city markers, and a live world news feed.
-
-**Repository:** https://github.com/billyx86/interactive-3d-globe
+Explore Earth in 3D with a **real-time day/night cycle**, **clickable cities**, and a **live world news** feed.
 
 ## Features
 
-1. **Interactive 3D Earth** — three.js + React Three Fiber + Drei (orbit, zoom, stars, atmosphere)
-2. **Real-time day/night** — directional sun light from UTC: `sunLon = 180 - (UTC_hours/24)*360`
-3. **Clickable cities** — 18 major world cities with markers, info panel, local clocks
-4. **Live news** — BBC/Reuters RSS via CORS proxies, curated fallback headlines
-5. **Dark glass UI** — HUD, side panels, city filter on news
+- **3D globe** — Blue Marble day map, bump topography, night city lights (dark side only), atmosphere, stars
+- **Day / night** — Sun position from live UTC (`sunLon ≈ 180 − hours/24 × 360`) + seasonal declination
+- **18 cities** — Pulsing markers; click for local clock, population, description
+- **World news** — BBC / Reuters RSS via CORS proxies, curated fallback if feeds are blocked
+- **City-filtered news** — Selecting a city filters headlines by region keywords
+- **HUD** — UTC clock, sun longitude, spin & city-lights toggles
 
 ## Stack
 
-- TanStack Start + Vite + React 19
-- three / @react-three/fiber / @react-three/drei
-- Tailwind CSS v4 + lucide-react + zustand
+React 19 · TanStack Start / Router · Three.js · React Three Fiber · Drei · Tailwind v4 · Zustand · Lucide
 
 ## Run
 
 ```bash
-chmod +x startup.sh
-./startup.sh
-# or:
 npm install
-npm install three @react-three/fiber @react-three/drei @types/three
-npm run dev
+chmod +x startup.sh && ./startup.sh
+# or: npm run dev
 ```
 
-Serves on **0.0.0.0:8080**.
+App serves on **http://0.0.0.0:8080**
+
+## Controls
+
+| Action | How |
+|--------|-----|
+| Orbit | Drag |
+| Zoom | Scroll |
+| Select city | Click amber/sky marker or list |
+| Auto-spin | Top bar **Spin** |
+| Night lights | Top bar **Lights** |
+| Refresh news | Panel refresh icon |
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Dev server on 0.0.0.0:8080 |
-| `npm run build` | Production build (Nitro Vercel preset) |
-| `npm run typecheck` | TypeScript check |
-
-## Project layout
-
-```
-src/
-  components/   Globe, GlobeCanvas, CityMarkers, NewsFeed, CityPanel
-  data/         cities.ts, news.ts
-  lib/          sun.ts
-  store/        globeStore.ts
-  routes/       __root.tsx, index.tsx
-```
+- `npm run dev` — development server
+- `npm run build` — production / Vercel build
+- `npm run typecheck` — TypeScript check
