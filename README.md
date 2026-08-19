@@ -1,5 +1,7 @@
 # Orbital — Interactive 3D Globe
 
+[![CI](https://github.com/billyx86/interactive-3d-globe/actions/workflows/ci.yml/badge.svg)](https://github.com/billyx86/interactive-3d-globe/actions/workflows/ci.yml)
+
 Explore Earth in 3D with a **real-time day/night cycle**, **clickable cities**, and a **live world news** feed.
 
 ## Features
@@ -41,3 +43,6 @@ App serves on **http://0.0.0.0:8080**
 - `npm run dev` — development server
 - `npm run build` — production / Vercel build
 - `npm run typecheck` — TypeScript check
+- `npm test` — vitest suite (36 tests: cities, news, sun math, store)
+
+CI (GitHub Actions) runs typecheck + tests + build on every push and PR.
