@@ -136,7 +136,7 @@ const RSS_FEEDS = [
   "https://feeds.reuters.com/Reuters/worldNews",
 ];
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .replace(/<[^>]+>/g, " ")
@@ -149,7 +149,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-function parseRss(xml: string, sourceLabel: string): NewsItem[] {
+export function parseRss(xml: string, sourceLabel: string): NewsItem[] {
   const items: NewsItem[] = [];
   const itemRegex = /<item[\s\S]*?<\/item>/gi;
   const blocks = xml.match(itemRegex) ?? [];
