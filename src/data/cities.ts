@@ -253,7 +253,7 @@ export const CITIES: City[] = [
     population: "1.7M",
     timezone: "Pacific/Auckland",
     description: "City of Sails — harbour, volcanic cones, and the gateway to the Pacific.",
-    keywords: ["auckland", "new zealand", "oceania", "skysail"],
+    keywords: ["auckland", "new zealand", "oceania", "sails"],
   },
   {
     id: "helsinki",
