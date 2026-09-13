@@ -6,12 +6,12 @@ import { CityMarkers } from "./CityMarkers";
 import { getSunDirection } from "../lib/sun";
 import { useGlobeStore } from "../store/globeStore";
 
-const EARTH_DAY =
-  "https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg";
-const EARTH_BUMP =
-  "https://unpkg.com/three-globe@2.31.1/example/img/earth-topology.png";
-const EARTH_NIGHT =
-  "https://unpkg.com/three-globe@2.31.1/example/img/earth-night.jpg";
+// Earth textures are vendored in public/textures (NASA Blue Marble /
+// Black Marble + three-globe topology — all public domain). Served from
+// the app origin, so the globe renders even without access to unpkg.com.
+const EARTH_DAY = "textures/earth-blue-marble.jpg";
+const EARTH_BUMP = "textures/earth-topology.png";
+const EARTH_NIGHT = "textures/earth-night.jpg";
 
 const RADIUS = 2;
 
