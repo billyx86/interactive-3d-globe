@@ -1,3 +1,5 @@
+import { validateCities } from "../lib/validate";
+
 export type City = {
   id: string;
   name: string;
@@ -209,7 +211,66 @@ export const CITIES: City[] = [
     description: "City spanning two continents at the crossroads of civilizations.",
     keywords: ["istanbul", "turkey", "europe", "asia"],
   },
+  {
+    id: "cape-town",
+    name: "Cape Town",
+    country: "South Africa",
+    lat: -33.9249,
+    lon: 18.4241,
+    population: "4.7M",
+    timezone: "Africa/Johannesburg",
+    description: "Where Table Mountain meets two oceans — wine country, penguins, and hiking.",
+    keywords: ["cape town", "south africa", "africa", "table mountain"],
+  },
+  {
+    id: "new-delhi",
+    name: "New Delhi",
+    country: "India",
+    lat: 28.6139,
+    lon: 77.209,
+    population: "16.8M",
+    timezone: "Asia/Kolkata",
+    description: "India's capital — a sprawling political heartland of Mughal monuments and modern governance.",
+    keywords: ["delhi", "india", "asia", "north india"],
+  },
+  {
+    id: "rio-de-janeiro",
+    name: "Rio de Janeiro",
+    country: "Brazil",
+    lat: -22.9068,
+    lon: -43.1729,
+    population: "6.7M",
+    timezone: "America/Sao_Paulo",
+    description: "Carnival, the Christ the Redeemer, and the most iconic bay-view coastline on Earth.",
+    keywords: ["rio", "rio de janeiro", "brazil", "south america", "carnival"],
+  },
+  {
+    id: "auckland",
+    name: "Auckland",
+    country: "New Zealand",
+    lat: -36.8485,
+    lon: 174.7633,
+    population: "1.7M",
+    timezone: "Pacific/Auckland",
+    description: "City of Sails — harbour, volcanic cones, and the gateway to the Pacific.",
+    keywords: ["auckland", "new zealand", "oceania", "sails"],
+  },
+  {
+    id: "helsinki",
+    name: "Helsinki",
+    country: "Finland",
+    lat: 60.1699,
+    lon: 24.9384,
+    population: "0.65M",
+    timezone: "Europe/Helsinki",
+    description: "Northern capital of design, saunas, and white granite — the winter-light specialist.",
+    keywords: ["helsinki", "finland", "europe", "nordic", "scandinavia"],
+  },
 ];
+
+// Fail fast on dataset drift (typos, bad coordinates, invalid timezones).
+// Invariants are also asserted per-city in src/data/cities.test.ts.
+validateCities(CITIES);
 
 /** Convert lat/lon degrees to THREE.js sphere position (Y-up, radius R). */
 export function latLonToVector3(lat: number, lon: number, radius: number) {
