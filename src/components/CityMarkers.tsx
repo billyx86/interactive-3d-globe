@@ -17,13 +17,19 @@ function Marker({ city, radius }: { city: City; radius: number }) {
   );
 
   useFrame(({ clock }) => {
-    if (pulseRef.current) {
-      const t = (Math.sin(clock.elapsedTime * 2.5 + city.lat) + 1) / 2;
-      const s = 1 + t * (isActive ? 1.6 : 0.8);
-      pulseRef.current.scale.setScalar(s);
-      const mat = pulseRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = isActive ? 0.45 - t * 0.35 : 0.25 - t * 0.2;
+    if (!pulseRef.current) return;
+    const { reducedMotion } = useGlobeStore.getState();
+    if (reducedMotion) {
+      // Static halo: hold the resting scale/opacity instead of pulsing (#14)
+      pulseRef.current.scale.setScalar(1);
+      (pulseRef.current.material as THREE.MeshBasicMaterial).opacity = 0.3;
+      return;
     }
+    const t = (Math.sin(clock.elapsedTime * 2.5 + city.lat) + 1) / 2;
+    const s = 1 + t * (isActive ? 1.6 : 0.8);
+    pulseRef.current.scale.setScalar(s);
+    const mat = pulseRef.current.material as THREE.MeshBasicMaterial;
+    mat.opacity = isActive ? 0.45 - t * 0.35 : 0.25 - t * 0.2;
   });
 
   const color = isActive ? "#38bdf8" : hovered ? "#7dd3fc" : "#fbbf24";

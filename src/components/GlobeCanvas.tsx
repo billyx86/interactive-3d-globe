@@ -78,7 +78,8 @@ function Earth() {
   );
 
   useFrame((_, dt) => {
-    if (cloudsRef.current) cloudsRef.current.rotation.y += dt * 0.012;
+    const { reducedMotion } = useGlobeStore.getState();
+    if (cloudsRef.current && !reducedMotion) cloudsRef.current.rotation.y += dt * 0.012;
     // Keep night-side mask aligned with the live sun direction
     const sun = getSunDirection();
     nightMat.uniforms.sunDirection.value.set(sun.x, sun.y, sun.z);
@@ -161,6 +162,7 @@ function SunLight() {
 
 function SceneControls() {
   const autoRotate = useGlobeStore((s) => s.autoRotate);
+  const reducedMotion = useGlobeStore((s) => s.reducedMotion);
   return (
     <OrbitControls
       enablePan={false}
@@ -168,7 +170,7 @@ function SceneControls() {
       dampingFactor={0.08}
       minDistance={3.2}
       maxDistance={9}
-      autoRotate={autoRotate}
+      autoRotate={autoRotate && !reducedMotion}
       autoRotateSpeed={0.35}
       rotateSpeed={0.55}
     />
@@ -190,6 +192,7 @@ function LoaderFallback() {
 
 /** Client-only R3F canvas (imported dynamically from Globe.tsx). */
 export default function GlobeCanvas() {
+  const reducedMotion = useGlobeStore((s) => s.reducedMotion);
   return (
     <div className="absolute inset-0">
       <Canvas
@@ -214,7 +217,7 @@ export default function GlobeCanvas() {
           factor={3.2}
           saturation={0}
           fade
-          speed={0.3}
+          speed={reducedMotion ? 0 : 0.3}
         />
         <Suspense fallback={<LoaderFallback />}>
           <Earth />

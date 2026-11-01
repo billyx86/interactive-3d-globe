@@ -9,7 +9,7 @@ Explore Earth in 3D with a **real-time day/night cycle**, **clickable cities**, 
 - **3D globe** — Blue Marble day map, bump topography, night city lights (dark side only), atmosphere, stars — textures vendored locally, no CDN needed
 - **Day / night** — Sun position from live UTC (`sunLon ≈ 180 − hours/24 × 360`) + seasonal declination
 - **23 cities** — Pulsing markers; click for local clock, population, description (dataset is validated at load — see "Adding cities" below)
-- **World news** — BBC / Reuters RSS via CORS proxies, curated fallback if feeds are blocked
+- **World news** — BBC / Guardian / Al Jazeera RSS via the app's own `/api/proxy` route (same origin, no third-party rate limits), falling back to public CORS proxies, with a curated fallback if all feeds are blocked
 - **City-filtered news** — Selecting a city filters headlines by region keywords
 - **HUD** — UTC clock, sun longitude, spin & city-lights toggles
 
@@ -43,7 +43,7 @@ App serves on **http://0.0.0.0:8080**
 - `npm run dev` — development server
 - `npm run build` — production / Vercel build
 - `npm run typecheck` — TypeScript check
-- `npm test` — vitest suite (47 tests: cities, news, sun math, store, validation)
+- `npm test` — vitest suite (55 tests: cities, news, sun math, store, validation)
 
 CI (GitHub Actions) runs typecheck + tests + build on every push and PR.
 

@@ -1,18 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import {
-  Sun,
-  Moon,
-  RotateCcw,
-  Sparkles,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { RotateCcw, Sparkles, Eye, EyeOff } from "lucide-react";
 import { Globe } from "../components/Globe";
 import { NewsFeed } from "../components/NewsFeed";
 import { CityPanel } from "../components/CityPanel";
-import { fetchWorldNews } from "../data/news";
-import { formatUtcClock, getSunDirection } from "../lib/sun";
+import { ClockHud } from "../components/ClockHud";
+import { fetchWorldNews, shouldRefreshNews } from "../data/news";
 import { useGlobeStore } from "../store/globeStore";
 
 export const Route = createFileRoute("/")({
@@ -20,37 +13,46 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const setNews = useGlobeStore((s) => s.setNews);
-  const setNewsLoading = useGlobeStore((s) => s.setNewsLoading);
   const autoRotate = useGlobeStore((s) => s.autoRotate);
   const toggleAutoRotate = useGlobeStore((s) => s.toggleAutoRotate);
   const showNightLights = useGlobeStore((s) => s.showNightLights);
   const toggleNightLights = useGlobeStore((s) => s.toggleNightLights);
+  const setReducedMotion = useGlobeStore((s) => s.setReducedMotion);
 
-  const [utcClock, setUtcClock] = useState(formatUtcClock());
-  const [sunLon, setSunLon] = useState(() => getSunDirection().sunLongitude);
+  // Honor prefers-reduced-motion: freeze spin, cloud drift, star twinkle
+  // and marker pulses (#14). Subscribed live so OS changes apply.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [setReducedMotion]);
 
-  const loadNews = useCallback(async () => {
-    setNewsLoading(true);
+  const loadNews = useCallback(async (force = false) => {
+    const st = useGlobeStore.getState();
+    if (!force && st.newsLoading) return; // a fetch is already in flight
+    if (!force && !shouldRefreshNews(st.newsLoadedAt, st.newsLive, Date.now())) return;
+    st.setNewsLoading(true);
     const { items, live } = await fetchWorldNews();
-    setNews(items, live);
-  }, [setNews, setNewsLoading]);
+    useGlobeStore.getState().setNews(items, live);
+  }, []);
 
   useEffect(() => {
     loadNews();
   }, [loadNews]);
 
+  // Refresh on a schedule: live data every 5 min, fallback retried every
+  // 15 min in case the network/proxies recovered (#12).
   useEffect(() => {
-    const id = setInterval(() => {
-      setUtcClock(formatUtcClock());
-      setSunLon(getSunDirection().sunLongitude);
-    }, 1000);
+    const id = setInterval(() => loadNews(), 60_000);
     return () => clearInterval(id);
-  }, []);
+  }, [loadNews]);
 
-  // Approximate day/night label for a user-friendly HUD
-  const dayFraction = getSunDirection().dayFraction;
-  const isMostlyDay = dayFraction > 0.25 && dayFraction < 0.75;
+  // The 1 Hz UTC clock + sun-longitude HUD lives in <ClockHud /> — a leaf
+  // component — so the per-second tick re-renders only that small subtree
+  // instead of the entire page (globe canvas + 23 city markers) (#13).
 
   return (
     <div className="relative flex h-svh w-full flex-col overflow-hidden">
@@ -73,23 +75,7 @@ function HomePage() {
         </div>
 
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-          <div className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 sm:flex">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-              {isMostlyDay ? (
-                <Sun className="h-3.5 w-3.5 text-amber-300" />
-              ) : (
-                <Moon className="h-3.5 w-3.5 text-indigo-300" />
-              )}
-              <span className="font-mono tabular-nums">{utcClock}</span>
-            </div>
-            <div className="h-3 w-px bg-slate-600" />
-            <div className="text-[11px] text-slate-400">
-              Sun lon{" "}
-              <span className="font-mono text-sky-300/90">
-                {sunLon.toFixed(1)}°
-              </span>
-            </div>
-          </div>
+          <ClockHud />
 
           <button
             type="button"
@@ -133,7 +119,7 @@ function HomePage() {
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-[46%] max-h-[420px] gap-3 p-3 md:inset-y-20 md:left-auto md:right-4 md:h-auto md:max-h-none md:w-[320px] md:flex-col md:p-0 md:py-2">
           <div className="pointer-events-auto min-h-0 flex-1">
-            <NewsFeed onRefresh={loadNews} />
+            <NewsFeed onRefresh={() => loadNews(true)} />
           </div>
         </div>
 

@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   FALLBACK_NEWS,
   filterNewsForCity,
   parseRss,
+  shouldRefreshNews,
   stripHtml,
   fetchWorldNews,
   type NewsItem,
@@ -137,5 +138,90 @@ describe("fetchWorldNews", () => {
     expect(live).toBe(true);
     expect(items.length).toBeGreaterThanOrEqual(3);
     vi.unstubAllGlobals();
+  });
+});
+
+describe("shouldRefreshNews", () => {
+  const now = 1_000_000_000_000;
+
+  it("refreshes when nothing has been loaded yet", () => {
+    expect(shouldRefreshNews(null, false, now)).toBe(true);
+  });
+
+  it("does not refresh fresh live data", () => {
+    expect(shouldRefreshNews(now - 4 * 60 * 1000, true, now)).toBe(false);
+  });
+
+  it("refreshes live data at or past the 5-minute cycle", () => {
+    expect(shouldRefreshNews(now - 5 * 60 * 1000, true, now)).toBe(true);
+  });
+
+  it("does not refresh recent fallback data (still within retry window)", () => {
+    expect(shouldRefreshNews(now - 10 * 60 * 1000, false, now)).toBe(false);
+  });
+
+  it("retries stale fallback data at or past the 15-minute window", () => {
+    expect(shouldRefreshNews(now - 15 * 60 * 1000, false, now)).toBe(true);
+  });
+});
+
+describe("proxy chain", () => {
+  const xml = `<rss><channel><item><title>Proxy test</title><link>https://e.com/p</link></item></channel></rss>`;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("tries the self-hosted proxy first, then public fallbacks", async () => {
+    vi.stubEnv("VITE_NEWS_PROXY", "http://localhost:8080/api/proxy");
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        calls.push(String(url));
+        if (calls.length <= 3) throw new Error("self-hosted proxy down");
+        return { ok: true, text: async () => xml };
+      }),
+    );
+    const { live } = await fetchWorldNews();
+    expect(live).toBe(true);
+    // The three feeds each start on the self-hosted proxy (same origin).
+    expect(calls.slice(0, 3).every((c) =>
+      c.startsWith("http://localhost:8080/api/proxy/"),
+    )).toBe(true);
+    // Each feed then falls through to the first public strategy.
+    expect(calls.some((c) => c.includes("api.allorigins.win"))).toBe(true);
+    // Public #2 is only reached if public #1 also fails — not the case here.
+    expect(calls.some((c) => c.includes("corsproxy.io"))).toBe(false);
+  });
+
+  it("falls back to the next public proxy when one is rate-limited", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.includes("allorigins")) throw new Error("403 rate limited");
+        if (u.includes("corsproxy")) return { ok: true, text: async () => xml };
+        throw new Error(`unexpected target ${u}`);
+      }),
+    );
+    const { live } = await fetchWorldNews();
+    expect(live).toBe(true);
+    expect(calls.some((c) => c.includes("allorigins"))).toBe(true);
+    expect(calls.some((c) => c.includes("corsproxy"))).toBe(true);
+  });
+
+  it("passes an AbortSignal to fetch (per-feed timeout budget)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        expect(init?.signal).toBeInstanceOf(AbortSignal);
+        return { ok: true, text: async () => xml };
+      }),
+    );
+    await fetchWorldNews();
   });
 });
