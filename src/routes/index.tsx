@@ -24,9 +24,21 @@ function HomePage() {
   const toggleAutoRotate = useGlobeStore((s) => s.toggleAutoRotate);
   const showNightLights = useGlobeStore((s) => s.showNightLights);
   const toggleNightLights = useGlobeStore((s) => s.toggleNightLights);
+  const setReducedMotion = useGlobeStore((s) => s.setReducedMotion);
 
   const [utcClock, setUtcClock] = useState(formatUtcClock());
   const [sunLon, setSunLon] = useState(() => getSunDirection().sunLongitude);
+
+  // Honor prefers-reduced-motion: freeze spin, cloud drift, star twinkle
+  // and marker pulses (#14). Subscribed live so OS changes apply.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [setReducedMotion]);
 
   const loadNews = useCallback(async (force = false) => {
     const st = useGlobeStore.getState();
