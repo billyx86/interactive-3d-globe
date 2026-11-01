@@ -10,6 +10,8 @@ type GlobeState = {
   autoRotate: boolean;
   showNightLights: boolean;
   setSelectedCity: (city: City | null) => void;
+  /** When the current news items were fetched (epoch ms); null = never. */
+  newsLoadedAt: number | null;
   setNews: (items: NewsItem[], live: boolean) => void;
   setNewsLoading: (v: boolean) => void;
   toggleAutoRotate: () => void;
@@ -23,8 +25,10 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   newsLoading: true,
   autoRotate: true,
   showNightLights: true,
+  newsLoadedAt: null,
   setSelectedCity: (city) => set({ selectedCity: city }),
-  setNews: (items, live) => set({ news: items, newsLive: live, newsLoading: false }),
+  setNews: (items, live) =>
+    set({ news: items, newsLive: live, newsLoading: false, newsLoadedAt: Date.now() }),
   setNewsLoading: (v) => set({ newsLoading: v }),
   toggleAutoRotate: () => set((s) => ({ autoRotate: !s.autoRotate })),
   toggleNightLights: () => set((s) => ({ showNightLights: !s.showNightLights })),

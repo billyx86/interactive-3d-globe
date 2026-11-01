@@ -50,6 +50,7 @@ describe("globeStore", () => {
     expect(st.news).toEqual([NEWS]);
     expect(st.newsLive).toBe(true);
     expect(st.newsLoading).toBe(false);
+    expect(st.newsLoadedAt).not.toBeNull();
   });
 
   it("toggles autoRotate and nightLights independently", () => {

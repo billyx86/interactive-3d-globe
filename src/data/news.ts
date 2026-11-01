@@ -10,6 +10,28 @@ export type NewsItem = {
 
 export type LiveNews = { items: NewsItem[]; live: boolean };
 
+/** Live feeds refresh on a short cycle; the fallback set is stale-by-design. */
+export const LIVE_REFRESH_MS = 5 * 60 * 1000;
+export const STALE_AFTER_MS = 15 * 60 * 1000;
+
+/**
+ * Decide whether the news cache should be re-fetched right now.
+ *
+ * - Live data older than LIVE_REFRESH_MS → refresh on schedule.
+ * - Fallback data older than STALE_AFTER_MS → retry, in case the network
+ *   (or the proxies) have recovered.
+ * - Never loaded / already loading → no-op handled by the caller.
+ */
+export function shouldRefreshNews(
+  lastLoadedAt: number | null,
+  live: boolean,
+  now: number,
+): boolean {
+  if (lastLoadedAt === null) return true;
+  const age = now - lastLoadedAt;
+  return live ? age >= LIVE_REFRESH_MS : age >= STALE_AFTER_MS;
+}
+
 export const FALLBACK_NEWS: NewsItem[] = [
   {
     id: "fallback-heat-pact",

@@ -3,6 +3,7 @@ import {
   FALLBACK_NEWS,
   filterNewsForCity,
   parseRss,
+  shouldRefreshNews,
   stripHtml,
   fetchWorldNews,
   type NewsItem,
@@ -137,6 +138,30 @@ describe("fetchWorldNews", () => {
     expect(live).toBe(true);
     expect(items.length).toBeGreaterThanOrEqual(3);
     vi.unstubAllGlobals();
+  });
+});
+
+describe("shouldRefreshNews", () => {
+  const now = 1_000_000_000_000;
+
+  it("refreshes when nothing has been loaded yet", () => {
+    expect(shouldRefreshNews(null, false, now)).toBe(true);
+  });
+
+  it("does not refresh fresh live data", () => {
+    expect(shouldRefreshNews(now - 4 * 60 * 1000, true, now)).toBe(false);
+  });
+
+  it("refreshes live data at or past the 5-minute cycle", () => {
+    expect(shouldRefreshNews(now - 5 * 60 * 1000, true, now)).toBe(true);
+  });
+
+  it("does not refresh recent fallback data (still within retry window)", () => {
+    expect(shouldRefreshNews(now - 10 * 60 * 1000, false, now)).toBe(false);
+  });
+
+  it("retries stale fallback data at or past the 15-minute window", () => {
+    expect(shouldRefreshNews(now - 15 * 60 * 1000, false, now)).toBe(true);
   });
 });
 

@@ -11,7 +11,7 @@ import {
 import { Globe } from "../components/Globe";
 import { NewsFeed } from "../components/NewsFeed";
 import { CityPanel } from "../components/CityPanel";
-import { fetchWorldNews } from "../data/news";
+import { fetchWorldNews, shouldRefreshNews } from "../data/news";
 import { formatUtcClock, getSunDirection } from "../lib/sun";
 import { useGlobeStore } from "../store/globeStore";
 
@@ -20,8 +20,6 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const setNews = useGlobeStore((s) => s.setNews);
-  const setNewsLoading = useGlobeStore((s) => s.setNewsLoading);
   const autoRotate = useGlobeStore((s) => s.autoRotate);
   const toggleAutoRotate = useGlobeStore((s) => s.toggleAutoRotate);
   const showNightLights = useGlobeStore((s) => s.showNightLights);
@@ -30,14 +28,24 @@ function HomePage() {
   const [utcClock, setUtcClock] = useState(formatUtcClock());
   const [sunLon, setSunLon] = useState(() => getSunDirection().sunLongitude);
 
-  const loadNews = useCallback(async () => {
-    setNewsLoading(true);
+  const loadNews = useCallback(async (force = false) => {
+    const st = useGlobeStore.getState();
+    if (!force && st.newsLoading) return; // a fetch is already in flight
+    if (!force && !shouldRefreshNews(st.newsLoadedAt, st.newsLive, Date.now())) return;
+    st.setNewsLoading(true);
     const { items, live } = await fetchWorldNews();
-    setNews(items, live);
-  }, [setNews, setNewsLoading]);
+    useGlobeStore.getState().setNews(items, live);
+  }, []);
 
   useEffect(() => {
     loadNews();
+  }, [loadNews]);
+
+  // Refresh on a schedule: live data every 5 min, fallback retried every
+  // 15 min in case the network/proxies recovered (#12).
+  useEffect(() => {
+    const id = setInterval(() => loadNews(), 60_000);
+    return () => clearInterval(id);
   }, [loadNews]);
 
   useEffect(() => {
@@ -133,7 +141,7 @@ function HomePage() {
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-[46%] max-h-[420px] gap-3 p-3 md:inset-y-20 md:left-auto md:right-4 md:h-auto md:max-h-none md:w-[320px] md:flex-col md:p-0 md:py-2">
           <div className="pointer-events-auto min-h-0 flex-1">
-            <NewsFeed onRefresh={loadNews} />
+            <NewsFeed onRefresh={() => loadNews(true)} />
           </div>
         </div>
 
