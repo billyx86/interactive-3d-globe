@@ -10,6 +10,7 @@ Explore Earth in 3D with a **real-time day/night cycle**, **clickable cities**, 
 - **Day / night** — Sun position from live UTC (`sunLon ≈ 180 − hours/24 × 360`) + seasonal declination
 - **23 cities** — Pulsing markers; click for local clock, population, description (dataset is validated at load — see "Adding cities" below)
 - **World news** — BBC / Guardian / Al Jazeera RSS via the app's own `/api/proxy` route (same origin, no third-party rate limits), falling back to public CORS proxies, with a curated fallback if all feeds are blocked
+- **Proxy SSRF guard** — `/api/proxy` validates target hosts both as literals (blocking loopback, private, link-local, and cloud-metadata ranges with trailing-dot and IPv4-mapped IPv6 normalisation) and by resolving every A/AAAA record before fetching; implemented in `src/lib/ssrf.ts` with unit coverage in `src/lib/ssrf.test.ts` (issue #17)
 - **City-filtered news** — Selecting a city filters headlines by region keywords
 - **HUD** — UTC clock, sun longitude, spin & city-lights toggles
 
@@ -43,7 +44,7 @@ App serves on **http://0.0.0.0:8080**
 - `npm run dev` — development server
 - `npm run build` — production / Vercel build
 - `npm run typecheck` — TypeScript check
-- `npm test` — vitest suite (55 tests: cities, news, sun math, store, validation)
+- `npm test` — vitest suite (71 tests: cities, news, sun math, store, validation, SSRF)
 
 CI (GitHub Actions) runs typecheck + tests + build on every push and PR.
 
