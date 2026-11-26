@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isBlockedHostname } from "@/lib/ssrf";
 
 /**
- * Same-origin CORS proxy for RSS feeds (#7, #15).
+ * Same-origin CORS proxy for RSS feeds (#7, #15, #17).
  *
  * The client's proxy chain (`src/data/news.ts`) tries this route first —
  * same origin, no third-party rate limits — before falling back to public
@@ -10,31 +11,15 @@ import { createFileRoute } from "@tanstack/react-router";
  *
  * Security model:
  *  - only `?url=` (absolute http/https) is served, max 2048 chars
- *  - deny-listed hosts (internal/LAN, localhost, private IP literals)
+ *  - SSRF guard (`src/lib/ssrf.ts`, #17): string deny-list + DNS resolution of
+ *    every A/AAAA record, blocking private/loopback/link-local/metadata ranges
+ *    (including trailing-dot and IPv4-mapped IPv6 forms)
  *  - 20 s fetch budget, 4 MB response cap
  *  - response is passed through untouched (feeds are public XML/HTML)
  */
 const MAX_URL_LEN = 2048;
 const FETCH_TIMEOUT_MS = 20_000;
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
-
-const DENY_HOSTS = new Set(["localhost", "0.0.0.0", "[::]"]);
-
-function isPrivateHost(hostname: string): boolean {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (DENY_HOSTS.has(h)) return true;
-  if (h.endsWith(".local") || h.endsWith(".internal")) return true;
-  // 10.x, 192.168.x, 172.16-31.x, 127.x, 169.254.x (link-local / cloud metadata)
-  const parts = h.split(".").map((p) => Number.parseInt(p, 10));
-  if (parts.length === 4 && parts.every((p) => Number.isFinite(p))) {
-    const [a, b] = parts as [number, number, number, number];
-    if (a === 127 || a === 10) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 169 && b === 254) return true;
-  }
-  return false;
-}
 
 export const Route = createFileRoute("/api/proxy")({
   server: {
@@ -50,7 +35,7 @@ export const Route = createFileRoute("/api/proxy")({
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
           return new Response("Only http(s) URLs are proxied", { status: 400 });
         }
-        if (target.length > MAX_URL_LEN || isPrivateHost(parsed.hostname)) {
+        if (target.length > MAX_URL_LEN || (await isBlockedHostname(parsed.hostname))) {
           return new Response("URL not allowed", { status: 403 });
         }
 
